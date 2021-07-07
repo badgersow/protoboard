@@ -7,8 +7,8 @@
 #define LED_B 9
 
 #define CO2_PIN 8
-#define CO2_THRESHOLD 500
-#define CO2_PERIOD 30000
+#define CO2_THRESHOLD 1000
+#define CO2_PERIOD 5000
 
 Adafruit_CCS811 ccs;
 LiquidCrystal_I2C lcd(0x27, 16, 2);
