@@ -1,4 +1,3 @@
-#include "Adafruit_CCS811.h"
 #include <LiquidCrystal_I2C.h>
 #include "Time.h"
 
@@ -6,11 +5,11 @@
 #define LED_G 10
 #define LED_B 9
 
+#define CO2_ANALOG_PIN 0
 #define CO2_PIN 8
 #define CO2_THRESHOLD 1000
-#define CO2_PERIOD 5000
+#define CO2_PERIOD 1000
 
-Adafruit_CCS811 ccs;
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 unsigned long lastCo2Poll = 0;
 
@@ -19,6 +18,7 @@ void setup() {
   pinMode(LED_G, OUTPUT);
   pinMode(LED_B, OUTPUT);
   pinMode(CO2_PIN, OUTPUT);
+  analogReference(DEFAULT);
 
   updateLed(LOW, LOW, LOW);
 
@@ -26,14 +26,8 @@ void setup() {
   while (!Serial)
     ;
 
-  // Wait for the sensor to be ready
-  ccs.begin();
-  while (!ccs.available())
-    ;
-
-      lcd.begin();
-
   // Turn on the blacklight and print a message.
+  lcd.begin();
   lcd.backlight();
   lcd.setCursor(0, 0);
   lcd.print("Initializing");
@@ -67,28 +61,40 @@ void updateRgbLed() {
 void updateCo2Led() {
   unsigned long currentTime = millis();
   if (currentTime < lastCo2Poll || currentTime > lastCo2Poll + CO2_PERIOD) {
-    if (ccs.available()) {
-      if (!ccs.readData()) {
-        uint16_t currentReading = ccs.geteCO2();
+        int currentReading = readCo2Value();
 
-        Serial.print("CO2: ");
-        Serial.println(ccs.geteCO2());
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("CO2: ");
         lcd.print(currentReading);
+        lcd.print(" ppm");
 
         if (currentReading >= CO2_THRESHOLD) {
           setCo2Led(HIGH);
         } else {
           setCo2Led(LOW);
         }
-      } else {
-        Serial.println("Problem with CO2 reading!");
-        setErrorLed();
-      }
-    }
+
     lastCo2Poll = currentTime;
+  }
+}
+
+int readCo2Value() {
+  //Read voltage
+  int sensorValue = analogRead(CO2_ANALOG_PIN);
+
+  // The analog signal is converted to a voltage
+  float voltage = sensorValue * (5000 / 1024.0);
+  
+  if(voltage < 400)
+  {
+    return -1; // Error value
+  }
+  else
+  {
+    int voltage_diference=voltage - 400;
+    float concentration=voltage_diference * 50.0 / 16.0;
+    return (int) concentration;
   }
 }
 
